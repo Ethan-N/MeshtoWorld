@@ -74,6 +74,8 @@ public:
 	float pixel_focus[1280 * 960];
 	float pixel_base_ang[1280 * 960];
 
+	bool flipped;
+
 	ofEasyCam ezcam;
 
 	shared_ptr<ofxBlackmagic::Input> input;
