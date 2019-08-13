@@ -39,7 +39,7 @@ void ofApp::setup() {
 	ofLog() << "Vertical FOV: " << vert_fov;
 	horiz_fov = diag_fov * w / image_diag;
 	ofLog() << "Horizontal FOV: " << horiz_fov;
-	focus_len = (image_diag / 2.0) / tan(vert_fov *3.1415/180.0 / 2.0);
+	focus_len = (h / 2.0) / tan(vert_fov *3.1415/180.0 / 2.0);
 	ofLog() << "Focus Length: " << focus_len;
 	
 	for (int y = 0; y < h; ++y) {
@@ -70,6 +70,43 @@ void ofApp::update(){
 	Orientation7 control = receiver.getController();
 	controller.setOrientation(control.quat);
 	controller.setPosition(control.pos);
+
+	if (control.trigger > 0 && !pressed) {
+		pressed = true;
+		curve_count = 1;
+		positions[0] = control.pos;
+		controller.setPosition(control.pos);
+		circles.setMatrix(circlenum, controller.getLocalTransformMatrix());
+		circles.setColor(circlenum, ofColor::fromHsb(255*control.trigger, 255, 255));
+		circles.updateGpu();
+		circlenum += 1;
+	}
+	else if (curve_count < 3 && control.trigger > 0) {
+		positions[curve_count]  = control.pos;
+		curve_count += 1;
+	}
+	else if (control.trigger > 0) {
+		if (curve_count == 3) {
+			positions[3] = control.pos;
+			curve_count += 1;
+		}
+		else {
+			positions[0] = positions[1];
+			positions[1] = positions[2];
+			positions[2] = positions[3];
+			positions[3] = control.pos;
+		}
+		for (int i = 1; i < 11; i++) {
+			controller.setPosition(ofInterpolateCatmullRom(positions[0], positions[1], positions[2], positions[3], i * .1));
+			circles.setMatrix(circlenum, controller.getGlobalTransformMatrix());
+			circles.setColor(circlenum, ofColor::fromHsb(255 * control.trigger, 255, 255));
+			circles.updateGpu();
+			circlenum += 1;
+		}
+	}
+	else if (control.trigger == 0 && pressed) {
+		pressed = false;
+	}
 
 
 	if(st.lastDepthFrame().isValid()){
